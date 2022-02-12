@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width">
+  <link rel="preload" as="style" href="includes/roboto-condensed.css" />
+  <link rel="stylesheet" href="includes/roboto-condensed.css" media="print" onload="this.media='all'" />
+  <link rel="stylesheet" href="style.css" type="text/css" />
+  <link rel="icon" type="image/png" href="includes/favicon.png" />
+  <script>
+    const getThemePreference = () => {
+      if(localStorage.getItem("theme-preference")) return localStorage.getItem("theme-preference");
+      else return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    function setTheme(value) {
+      const themes = ["light", "dark"];
+      const themePreference = (themes.includes(value) ? value : getThemePreference()) || getThemePreference();
+      localStorage.setItem("theme-preference", themePreference);
+      document.firstElementChild.setAttribute("data-theme", themePreference);
+    }
+    setTheme();
+  </script>
+  <title>Periodic Table</title>
+</head>
+<body>
+
+<article class="singular-view"><div></div></article>
+<div class="gradient-tooltip"></div>
+<script type="text/javascript" src="periodic-table.js"></script>
+
+</body>
+</html>

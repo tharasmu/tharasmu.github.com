@@ -1,0 +1,13 @@
+@font-face {
+  font-family: 'Roboto Condensed';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/roboto-condensed-v24-latin-regular.eot');
+  src: local(''),
+       url('fonts/roboto-condensed-v24-latin/roboto-condensed-v24-latin-regular.eot?#iefix') format('embedded-opentype'),
+       url('fonts/roboto-condensed-v24-latin/roboto-condensed-v24-latin-regular.woff2') format('woff2'),
+       url('fonts/roboto-condensed-v24-latin/roboto-condensed-v24-latin-regular.woff') format('woff'),
+       url('fonts/roboto-condensed-v24-latin/roboto-condensed-v24-latin-regular.ttf') format('truetype'),
+       url('fonts/roboto-condensed-v24-latin/roboto-condensed-v24-latin-regular.svg#RobotoCondensed') format('svg');
+  font-display: swap;
+}

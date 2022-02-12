@@ -69,10 +69,15 @@ const totesLegitColorHelper = (colors = []) => {
   return context;
 }
 
-const groups = [{name: "Nonmetal", color: "#f9f6a8", abbv: "NM"}, {name: "Noble gas", color: "#f9d7f5", abbv: "NG"}, {name: "Alkali metal", color: "#f9a9a8", abbv: "AM"},
-                {name: "Alkaline earth metal", color: "#fbdabc", abbv: "AEM"}, {name: "Metalloid", color: "#d6e2a8", abbv: "M"}, {name: "Halogen", color: "#f9f6a8", abbv: "HA"},
-                {name: "Post-transition metal", color: "#acf6a8", abbv: "PTM"}, {name: "Transition metal", color: "#acd0f5", abbv: "TM"}, {name: "Lanthanide", color: "#acf6f5", abbv: "LA"},
-                {name: "Actinide", color: "#bff6e2", abbv: "AC"}];
+const series = [{name: "Alkali metal", color: "#f9a9a8", abbv: "AM"},
+                {name: "Alkaline earth metal", color: "#fbdabc", abbv: "AEM"},
+                {name: "Lanthanide", color: "#aa6800", abbv: "LA"},
+                {name: "Actinide", color: "#bff6e2", abbv: "AC"},
+                {name: "Transition metal", color: "#acd0f5", abbv: "TM"},
+                {name: "Post-transition metal", color: "#acf6a8", abbv: "PTM"},
+                {name: "Metalloid", color: "#d6e2a8", abbv: "M"},
+                {name: "Reactive nonmetal", color: "#f9f6a8", abbv: "RN"},
+                {name: "Noble gas", color: "#f9d7f5", abbv: "NG"}];
 
 const overlays = [{name: "Series", nameCamel: "series"}, {name: "Standard State", nameCamel: "standardState"}, {name: "Atomic Mass", nameCamel: "atomicMass"},
                   {name: "Density", nameCamel: "density"}, {name: "Melting Point", nameCamel: "meltingPoint"}, {name: "Boiling Point", nameCamel: "boilingPoint"},
@@ -104,9 +109,9 @@ function drawTable(obj) {
         tableElement.appendChild(emptyRow);
       }
       row.appendChild(newElement("td", {colspan: 2, rowspan: 1}));
-      row.appendChild(newElement("td", {class: "element-cell-filler", style: "font-size: 0.9em; background: " + groups[i].color, text: ((i == 8) ? "*" : "**" ) + "\n" + groups[i].name + "s"}))
-      obj.filter(entry => entry.group == groups[i].name).forEach((element, elementColIndex) => {
-        const elGroup = groups.filter(group => group.name == element.group)[0];
+      row.appendChild(newElement("td", {class: "element-cell-filler", style: "font-size: 0.9em; background: " + series[i - 6].color, text: ((i == 8) ? "*" : "**" ) + "\n" + series[i - 6].name + "s"}))
+      obj.filter(entry => entry.group == series[i - 6].name).forEach((element, elementColIndex) => {
+        const elGroup = series.filter(group => group.name == element.group)[0];
         const elCell = newElement("td", {class: "element-cell", "data-elementnumber": element.atomicNumber, style: "background: " + elGroup.color},
           [newElement("div", {class: "element-cell-wrapper"}, [
             newElement("h2", {text: element.symbol}),
@@ -130,7 +135,7 @@ function drawTable(obj) {
           }
         }
         if(element.hasOwnProperty("period")) {
-          const elGroup = groups.filter(group => group.name == element.group)[0];
+          const elGroup = series.filter(group => group.name == element.group)[0];
           const elCell = newElement("td", {class: "element-cell", "data-elementnumber": element.atomicNumber, style: "background: " + elGroup.color},
             [newElement("div", {class: "element-cell-wrapper"}, [
               newElement("h2", {text: element.symbol}),
@@ -141,7 +146,7 @@ function drawTable(obj) {
           row.appendChild(elCell);
         }
         if(elementColIndex == 1 && (i == 6 || i == 7)) {
-          const emptyCell = newElement("td", {class: "element-cell-filler", style: "background: " + groups[i + 2].color, text: (i == 6) ? "*" : "**"});
+          const emptyCell = newElement("td", {class: "element-cell-filler", style: "background: " + series[i - 4].color, text: (i == 6) ? "*" : "**"});
           row.appendChild(emptyCell);
         }
       });
@@ -155,7 +160,7 @@ function showDetails(i) {
   const elObj = elements[i];
   const elNode = newElement("div");
   elNode.appendChild(newElement("div", {class: "details-shortfact"}, [
-    newElement("div", {class: "details-shortfact-number", text: elObj.atomicNumber, style: "background: " + groups.filter(entry => entry.name == elObj.group)[0].color}),
+    newElement("div", {class: "details-shortfact-number", text: elObj.atomicNumber, style: "background: " + series.filter(entry => entry.name == elObj.group)[0].color}),
     newElement("h2", {class: "details-shortfact-symbol", text: elObj.symbol}),
     newElement("div", {class: "details-shortfact-name", text: elObj.name}),
     newElement("div", {class: "details-shortfact-group", text: elObj.group})
@@ -207,15 +212,19 @@ const createGradientLegend = (data) => {
   return gradientLegend;
 }
 
-const createLinearLegend = (data) => {
+const createLinearLegend = (data, type) => {
   const linearLegend = newElement("aside", {class: "periodic-table-legend linear-legend"});
+  if(type == "series") {
+    linearLegend.appendChild(newElement("em", {class: "legend-label", text: "Metals"}));
+    linearLegend.appendChild(newElement("em", {class: "legend-label", text: "Nonmetals"}));
+  }
   for(let i = 0; i < data.length; i++) {
     const step = data[i];
     if(step.name.substring(0, 8) == "Expected") step.name = step.name.split(" ")[0] + " " + step.name.split(" ")[4].charAt(0).toUpperCase() + step.name.split(" ")[4].slice(1);
     const stepEl = newElement("div", {class: "linear-indicator-step"}, [
       newElement("div", {class: "step-color", style: `background-color: ${step.color}`}),
-      newElement("span", {text: step.name})
-    ])
+      newElement("span", {text: step.name.replace("metal", "m.")})
+    ]);
     linearLegend.appendChild(stepEl);
   }
   return linearLegend;
@@ -315,7 +324,7 @@ function mutateOverlay(obj = {}, type) {
     default:
       type = "series";
       props.useGradient = false;
-      props.legend = groups;
+      props.legend = series;
       break;
   }
 
@@ -324,7 +333,7 @@ function mutateOverlay(obj = {}, type) {
   if(type == "series") {
     for(let i = 0; i < cells.length; i++) {
       const cell = cells[i];
-      const cellGroup = groups.filter(group => group.name == obj[cell.dataset.elementnumber - 1].group)[0];
+      const cellGroup = series.filter(group => group.name == obj[cell.dataset.elementnumber - 1].group)[0];
       cell.querySelector(".table-element-tertiary").innerText = cellGroup.abbv;
       cell.classList.add("relevant");
       cell.style.background = cellGroup.color;
@@ -400,7 +409,7 @@ function mutateOverlay(obj = {}, type) {
     }
   }
 
-  const overlayLegend = (props.useGradient == false) ? createLinearLegend(props.legend) : createGradientLegend(props);
+  const overlayLegend = (props.useGradient == false) ? createLinearLegend(props.legend, type) : createGradientLegend(props);
   q(".periodic-table-legend").replaceWith(overlayLegend);
   props.useGradient !== false && addLegendLabelListeners();
 
@@ -411,10 +420,10 @@ function mutateOverlay(obj = {}, type) {
 
   const fillerCells = document.querySelectorAll(".element-cell-filler");
   if(!type || type == "series") {
-    fillerCells[0].style.background = groups[8].color;
-    fillerCells[1].style.background = groups[9].color;
-    fillerCells[2].style.background = groups[8].color;
-    fillerCells[3].style.background = groups[9].color;
+    fillerCells[0].style.background = series[2].color;
+    fillerCells[1].style.background = series[3].color;
+    fillerCells[2].style.background = series[2].color;
+    fillerCells[3].style.background = series[3].color;
   }
   else {
     fillerCells.forEach(fillerCell => {

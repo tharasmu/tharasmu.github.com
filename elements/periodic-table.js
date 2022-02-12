@@ -243,10 +243,8 @@ function addLegendLabelListeners() {
 }
 
 function mutateOverlay(obj = {}, type) {
-  if(!obj) return;
   type = type || "";
-  let typeSortedObj, legendIndicator;
-  let sortFn, executorFn;
+  let typeSortedObj, legendIndicator, sortFn, executorFn;
 
   const props = {};
   const cells = document.querySelectorAll(".element-cell");

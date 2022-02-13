@@ -187,7 +187,7 @@ function showDetails(i) {
 
 }
 
-function drawTooltip(event, which) {
+function drawTooltip(which) {
   const selector = (which > 0) ? ".gradient-high" : ".gradient-low";
   const boundingBox = q(selector).firstElementChild.getBoundingClientRect();
   const x = boundingBox.x + 40, y = window.scrollY + boundingBox.y - 40;
@@ -230,24 +230,31 @@ const createLinearLegend = (data, type) => {
   return linearLegend;
 }
 
+function legendMouseenter() {
+  clearTimeout(tooltipTimeout);
+  const which = (this.parentNode.classList.contains("gradient-low")) ? 0 : 1;
+  drawTooltip(which);
+}
+
+function legendMouseleave() {
+  tooltipTimeout = setTimeout(function() {
+    document.documentElement.removeAttribute("style");
+    q(".gradient-tooltip").innerText = "";
+  }, 200);
+  q(".gradient-tooltip").classList.remove("visible");
+}
+
 function addLegendLabelListeners() {
   document.querySelectorAll(".gradient-label span").forEach(label => {
-    label.addEventListener("mouseenter", e => {
-      if(label.innerText !== "") {
-        clearTimeout(tooltipTimeout);
-        const which = (label.parentNode.classList.contains("gradient-low")) ? 0 : 1;
-        drawTooltip(e, which);
-      }
-    });
-    label.addEventListener("mouseleave", () => {
-      if(label.innerText !== "") {
-        tooltipTimeout = setTimeout(function() {
-          document.documentElement.removeAttribute("style");
-          q(".gradient-tooltip").innerText = "";
-        }, 200);
-        q(".gradient-tooltip").classList.remove("visible");
-      }
-    })
+    label.addEventListener("mouseenter", legendMouseenter);
+    label.addEventListener("mouseleave", legendMouseleave);
+  });
+}
+
+function removeLegendLabelListeners() {
+  document.querySelectorAll(".gradient-label span")?.forEach(label => {
+    label.removeEventListener("mouseenter", legendMouseenter);
+    label.removeEventListener("mouseleave", legendMouseleave);
   });
 }
 
@@ -300,7 +307,7 @@ function mutateOverlay(obj = {}, type) {
     case "standardState":
       props.useGradient = false;
       props.legend = [{name: "Gas", color: "#cfe2f3"}, {name: "Solid", color: "#f1c232"}, {name: "Liquid", color: "#ead1dc"},
-                       {name: "Expected to be a Gas", color: "#f6f2f0"}, {name: "Expected to be a Solid", color: "#f9e6ad"}];
+        {name: "Expected to be a Gas", color: "#f6f2f0"}, {name: "Expected to be a Solid", color: "#f9e6ad"}];
       sortFn = (a, b) => {
         return a[type] > b[type] && 1 || -1
       }
@@ -313,7 +320,7 @@ function mutateOverlay(obj = {}, type) {
       }
       break;
     case "isotopes":
-      props.isCountableValue = "true";
+      props.isCountableValue = true;
       props.colorMax = "#3d85c6";
       props.colorMin = "#f6f2f0";
       props.legend = {label: "stable isotopes", unit: "#", min: "few", max: "many"}
@@ -369,27 +376,17 @@ function mutateOverlay(obj = {}, type) {
     typeSortedObj = JSON.parse(JSON.stringify(obj.filter(entry => entry[type] && entry[type] !== "")));
     typeSortedObj.sort(sortFn);
 
-    // if data map uses a gradient, assign App.extremes for use by legend hover tooltip
-    // also assign App.gradient to allow grabbing a color step for an individual element cell
+    // if data map uses a gradient, assign name and relevant value for elements at start and end position of object sorted by overlay to App.extremes
+    // also create and assign our gradient to App.gradient, so we can grab a color step for an individual element cell later
     if(props.useGradient !== false) {
       const setExtremes = () => {
         let extremeValue = [];
         let extremeElement = [];
-        if(props.isCountableValue) {
-          extremeValue[0] = Object.keys(typeSortedObj[0][type]).length;
-          extremeValue[1] = Object.keys(typeSortedObj[typeSortedObj.length - 1][type]).length;
-          for(let i = 0; i < 2; i++) {
-            const h = typeSortedObj.filter(entry => Object.keys(entry[type]).length == extremeValue[i]);
-            extremeElement[i] = (h.length > 1) ? h.length : ((i > 0) ? h[h.length - 1].name : h[i].name);
-          }
-        }
-        else {
-          extremeValue[0] = typeSortedObj[0][type];
-          extremeValue[1] = typeSortedObj[typeSortedObj.length - 1][type];
-          for(let i = 0; i < 2; i++) {
-            const h = typeSortedObj.filter(entry => entry[type] == extremeValue[i]);
-            extremeElement[i] = (h.length > 1) ? h.length : ((i > 0) ? h[h.length - 1].name : h[i].name);
-          }
+        extremeValue[0] = (props.isCountableValue) ? Object.keys(typeSortedObj[0][type]).length : typeSortedObj[0][type];
+        extremeValue[1] = (props.isCountableValue) ? Object.keys(typeSortedObj[typeSortedObj.length - 1][type]).length : typeSortedObj[typeSortedObj.length - 1][type];
+        for(let i = 0; i < 2; i++) {
+          const haystack = typeSortedObj.filter(entry => ((props.isCountableValue) ? Object.keys(entry[type]).length : entry[type]) == extremeValue[i]);
+          extremeElement[i] = (haystack.length > 1) ? haystack.length : haystack[0].name;
         }
         return {min: {value: extremeValue[0], name: extremeElement[0]}, max: {value: extremeValue[1], name: extremeElement[1]}}
       }
@@ -410,6 +407,7 @@ function mutateOverlay(obj = {}, type) {
   }
 
   const overlayLegend = (props.useGradient == false) ? createLinearLegend(props.legend, type) : createGradientLegend(props);
+  props.useGradient !== false && removeLegendLabelListeners();
   q(".periodic-table-legend").replaceWith(overlayLegend);
   props.useGradient !== false && addLegendLabelListeners();
 

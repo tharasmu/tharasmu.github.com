@@ -75,26 +75,6 @@ body {
   transition: background-color .2s ease, box-shadow .2s ease;
 }
 
-/* .element-cell:hover:before, .element-cell.current:before {
-  width: 10%;
-} */
-
-/* .element-cell:before, .element-cell-filler:before {
-  display: block;
-  position: absolute;
-  content: "";
-  width: 0;
-  height: 100%;
-  top: 0;
-  right: 0;
-  background: hsla(220,7.1%,16.5%,.8);
-} */
-
-/* .element-cell:before {
-  will-change: width;
-  transition: width .2s ease;
-} */
-
 .element-cell-wrapper {
   width: 100%;
   height: 100%;
@@ -171,7 +151,6 @@ body {
   top: calc(50% - 8px);
   clip-path: polygon(100% 0%, 0 0%, 50% 100%);
   background: var(--theme-body-1);
-  /* transition: transform .2s ease; */
 }
 
 .overlay-selector label.open {
@@ -264,7 +243,7 @@ body {
   width: calc(820px - 25vw);
   max-width: 100%;
   min-width: calc(40% - 1px);
-  height: 94px;
+  height: 98px;
   animation: fade-in .4s ease;
   grid-template-columns: repeat(3, minmax(max-content, 1fr));
   grid-auto-rows: 1fr;
@@ -278,7 +257,7 @@ body {
 }
 
 .periodic[data-viewtype="series"] .legend-label {
-  border: 2px solid #fff;
+  border: 2px solid var(--theme-body-1);
   border-bottom: 0;
   letter-spacing: normal;
   padding: 0 4px 0 4px;

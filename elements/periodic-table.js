@@ -1,7 +1,4 @@
-async function getJson (file) {
-  return fetch(file).then(r => r.json());
-}
-
+const getJson = async(file) => fetch(file).then(r => r.json());
 const q = (selector) => document.querySelector(selector);
 
 function newElement(tagName, props = {}, children = []) {

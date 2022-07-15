@@ -207,10 +207,6 @@ main {
   }
 }
 .timeline {
-  -webkit-transition: -webkit-transform 1s ease;
-  transition: -webkit-transform 1s ease;
-  transition: transform 1s ease;
-  transition: transform 1s ease, -webkit-transform 1s ease;
   height: 100%;
   width: 100%;
   list-style-type: none;
@@ -227,10 +223,20 @@ main {
   -ms-flex-wrap: nowrap;
       flex-wrap: nowrap;
   gap: 1em;
-}
-.timeline[data-scroll] {
+  --scroll-target: 0;
+  --scroll-duration: 1s;
   -webkit-transform: translateY(var(--scroll-target));
           transform: translateY(var(--scroll-target));
+  -webkit-transition: -webkit-transform 1s ease;
+  transition: -webkit-transform 1s ease;
+  transition: transform 1s ease;
+  transition: transform 1s ease, -webkit-transform 1s ease;
+}
+.timeline.scrolling {
+  -webkit-transition: -webkit-transform var(--scroll-duration) ease-in-out;
+  transition: -webkit-transform var(--scroll-duration) ease-in-out;
+  transition: transform var(--scroll-duration) ease-in-out;
+  transition: transform var(--scroll-duration) ease-in-out, -webkit-transform var(--scroll-duration) ease-in-out;
 }
 .timeline li {
   min-height: 6em;

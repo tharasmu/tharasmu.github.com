@@ -31,6 +31,8 @@ let clientItems = [];
 let curPrompt;
 let boolIsGrabbing = false;
 let boolIsScrolling = false;
+const placedListItems = [];
+let curIndex;
 
 function getRandomItem(arr) {
   const index = Math.floor((Math.random() * (arr.length - 1)));
@@ -39,10 +41,10 @@ function getRandomItem(arr) {
 
 function createPrompt() {
   const promptNode = q(".prompt");
-  curPromptIndex = getRandomItem(clientItems);
-  q(".prompt").innerText = clientItems[curPromptIndex][0];
-  q(".prompt").dataset.step = items.indexOf(clientItems[curPromptIndex]);
-  clientItems.splice(curPromptIndex, 1);
+  const clientItemIndex = getRandomItem(clientItems);
+  q(".prompt").innerText = clientItems[clientItemIndex][0];
+  curIndex = items.indexOf(clientItems[clientItemIndex]);
+  clientItems.splice(clientItemIndex, 1);
 }
 
 function drawCurScore() {
@@ -60,40 +62,72 @@ function initialize() {
   qa(".timeline li span")[1].innerText = items[startIndex][2];
   q(".timeline li").dataset.step = startIndex;
   q("header").innerText = title;
+  placedListItems.push(startIndex);
   drawCurScore();
   createPrompt();
 }
 
 let lastHoverSpot = [];
 
+// function smoothScroller(target, boolIsScrolling) {
+//   while(boolIsScrolling)
+// }
+
+function getCurrentTranslateY(element) {
+  const matrix = window.getComputedStyle(element).getPropertyValue("transform");
+  const output = matrix.match(/[^\s()]\d+\.\d+/);
+  return (output !== null) ? Number(output[0]) : null;
+}
+
 function doListScroll(ev, boolIsStopCommand) {
-  if(boolIsStopCommand) {
-    const curScrollAmount = window.getComputedStyle(q(".timeline")).getPropertyValue("transform");
-    q(".timeline").style.transform = curScrollAmount;
+  if(boolIsStopCommand && boolIsScrolling) {
     boolIsScrolling = false;
+    q(".timeline").classList.remove("scrolling");
+    const currentTransform = getCurrentTranslateY(q(".timeline"));
+    if(currentTransform !== null) {
+      let y = currentTransform;
+      y += -1 * Math.sign(y) * 5;
+      const scrollTargetVar = parseInt(window.getComputedStyle(q(".timeline")).getPropertyValue("--scroll-target"));
+      q(".timeline").style.transform = (Math.abs(y) < Math.abs(scrollTargetVar) ? "translateY(" + y + "px)" : "");
+    }
   }
-  else {
+  else if(!boolIsScrolling) {
     const boolScrollDirectionUp = ev.clientY < q(".timeline-wrapper").offsetHeight/2 ? true : false;
     const scrollAmountSign = boolScrollDirectionUp ? 1 : -1;
     const timelineElementHeight = q(".timeline").offsetHeight;
     const timelineGapAmount = parseInt(window.getComputedStyle(q(".timeline")).getPropertyValue("gap"));
     scrollExtremeValue = 100 + qa(".timeline li").length * q(".timeline li").offsetHeight + ((qa(".timeline li").length - 1) * timelineGapAmount);
-    boolIsScrolling = true;
     if(scrollExtremeValue > timelineElementHeight) {
-      q(".timeline").style.cssText = "--scroll-target: " + (scrollAmountSign * 100 + scrollAmountSign * ((scrollExtremeValue - timelineElementHeight)/2 + timelineGapAmount)) + "px";
-      q(".timeline").dataset.scroll = true;
+      boolIsScrolling = true;
+      q(".timeline").classList.add("scrolling");
+      const y = (scrollAmountSign * 100 + scrollAmountSign * ((scrollExtremeValue - timelineElementHeight)/2 + timelineGapAmount));
+      // translate per second equals 80% of four line item heights plus three gaps
+      const speed = 1.2 * (4 * q(".timeline li").offsetHeight + 3 * timelineGapAmount);
+      const currentOffset = getCurrentTranslateY(q(".timeline"));
+      let duration;
+      if(currentOffset !== null) {
+        const g = (currentOffset + Math.abs(y)) / (Math.abs(y) * 2);
+        const distanceTravelledFromBottom = g * Math.abs(y) * 2;
+        const pathToTravel = (scrollAmountSign > 0) ? Math.abs(y) * 2 - distanceTravelledFromBottom : distanceTravelledFromBottom;
+        duration = pathToTravel / speed;
+      }
+      else {
+        duration = (Math.abs(y) * 2) / speed;
+      }
+      q(".timeline").style.cssText = "--scroll-target: " + y + "px; --scroll-duration: " + duration + "s";
     }
   }
 }
 
 function animateTimelineHover(node, boolPromptHoverBelow) {
+  const squareMoveAmount = 20;
   if(boolPromptHoverBelow) {
-    if(node.nextElementSibling !== null) node.nextElementSibling.style.transform = "translateY(10px)";
-    node.style.transform = "translateY(-10px)";
+    if(node.nextElementSibling !== null) node.nextElementSibling.style.transform = "translateY(" + squareMoveAmount + "px)";
+    node.style.transform = "translateY(" + (-1 * squareMoveAmount) + "px)";
   }
   else {
-    if(node.previousElementSibling !== null) node.previousElementSibling.style.transform = "translateY(-10px)";
-    node.style.transform = "translateY(10px)";
+    if(node.previousElementSibling !== null) node.previousElementSibling.style.transform = "translateY(" + (-1 * squareMoveAmount) + "px)";
+    node.style.transform = "translateY(" + squareMoveAmount + "px)";
   }
 }
 
@@ -125,12 +159,13 @@ function dragPrompt(ev) {
     let timelineItemBelow;
 
     promptNode.style.pointerEvents = "none";
+    if(!document.elementFromPoint(ev.clientX, ev.clientY)) return;
     if(document.elementFromPoint(ev.clientX, ev.clientY).closest(".timeline-wrapper") !== null) {
       if(ev.clientY < q(".timeline-wrapper").getBoundingClientRect().top + 40 || ev.clientY > q(".timeline-wrapper").getBoundingClientRect().bottom - 40) {
         doListScroll(ev, false);
       }
       else {
-        doListScroll(ev, true);
+        if(boolIsScrolling) doListScroll(ev, true);
         timelineItemBelow = qa(".timeline li")[getCloseElement(ev)];
       }
     }
@@ -160,20 +195,20 @@ function dragPrompt(ev) {
     qa(".timeline li").forEach(item => item.removeAttribute("style"));
     document.removeEventListener("pointermove", onPointerMove);
     if(lastHoverSpot[0]) {
-      const stepToPlace = Number(q(".prompt").dataset.step);
-      const stepSpot = Number(lastHoverSpot[0].dataset.step);
+      const stepSpotIndex = Array.prototype.indexOf.call(qa(".timeline li"), lastHoverSpot[0]);
+      const stepSpot = placedListItems[stepSpotIndex];
 
       const stepSpotIsAllowed = () => {
-        return lastHoverSpot[1] ? stepToPlace < stepSpot : stepSpot < stepToPlace;
+        return lastHoverSpot[1] ? curIndex < stepSpot : stepSpot < curIndex;
       }
       const stepSiblingIsAllowed = () => {
-        if(lastHoverSpot[1] && lastHoverSpot[0].nextElementSibling) return Number(lastHoverSpot[0].nextElementSibling.dataset.step) < stepToPlace;
-        else if(!lastHoverSpot[1] && lastHoverSpot[0].previousElementSibling) return Number(lastHoverSpot[0].previousElementSibling.dataset.step) > stepToPlace;
+        if(lastHoverSpot[1] && lastHoverSpot[0].nextElementSibling) return placedListItems[stepSpotIndex + 1] < curIndex;
+        else if(!lastHoverSpot[1] && lastHoverSpot[0].previousElementSibling) return placedListItems[stepSpotIndex - 1] > curIndex;
         else return true;
       }
 
       const boolIsAllowed = (stepSpotIsAllowed() == true && stepSiblingIsAllowed() == true ? true : false);
-      const newListItem = newElement("li", {"data-step": stepToPlace}, [newElement("span", {text: q(".prompt").innerText}), newElement("span", {text: items[stepToPlace][2] + items[startIndex][1]})]);
+      const newListItem = newElement("li", "", [newElement("span", {text: q(".prompt").innerText}), newElement("span", {text: items[curIndex][2] + items[startIndex][1]})]);
       newListItem.classList.add("transition");
       newListItem.classList.add(boolIsAllowed ? "w" : "l");
       if(lastHoverSpot[1]) {
@@ -182,24 +217,27 @@ function dragPrompt(ev) {
       else {
         q(".timeline").insertBefore(newListItem, lastHoverSpot[0]);
       }
+      placedListItems.push(curIndex);
+      placedListItems.sort((a, b) => {
+        return b - a;
+      })
       if(!boolIsAllowed) {
-        const timeline = qa(".timeline li");
-        const arr = [];
-        timeline.forEach(item => arr.push(Number(item.dataset.step)));
-        arr.sort((a, b) => {
-          return b - a;
-        });
-        const curPos = Array.prototype.indexOf.call(timeline, newListItem);
-        const newPos = arr.indexOf(stepToPlace);
-        const diff = (newPos - curPos) * 140 + Math.sign(newPos - curPos) * 70;
+        console.log(qa(".timeline li"));
+        const curPos = Array.prototype.indexOf.call(qa(".timeline li"), newListItem);
+        const newPos = placedListItems.indexOf(curIndex);
+        const posDiff = newPos - curPos;
+        const nodePositionDiff = posDiff * 140 + Math.sign(posDiff) * 70;
 
         setTimeout(() => {
-          newListItem.style.cssText = "--moveto: " + diff + "px";
+          newListItem.style.cssText = "--moveto: " + nodePositionDiff + "px";
           setTimeout(() => {
             newListItem.removeAttribute("style");
-            if(newPos == arr.length - 1) q(".timeline").appendChild(newListItem);
+            if(newPos == placedListItems.length - 1) {
+              q(".timeline").appendChild(newListItem);
+            }
             else {
-              q(".timeline").insertBefore(newListItem, q(".timeline li[data-step=\"" + arr[newPos + 1] + "\"]"));
+              if(curPos > newPos) q(".timeline").insertBefore(newListItem, q(".timeline").children[newPos]);
+              else q(".timeline").insertBefore(newListItem, q(".timeline").children[newPos + 1]);
             }
           }, 500);
         }, 500);
@@ -226,7 +264,6 @@ function dragPrompt(ev) {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  // q(".timeline li").addEventListener("dragover", (e) => dragOverListener(e));
   q(".prompt").addEventListener("pointerdown", (e) => dragPrompt(e));
   q(".prompt").addEventListener("dragstart", (e) => {
     return false;
@@ -237,8 +274,13 @@ window.addEventListener("DOMContentLoaded", () => {
         doListScroll(ev, false);
       }
       else {
-        doListScroll(ev, true);
+        if(boolIsScrolling) doListScroll(ev, true);
       }
+    }
+  });
+  q(".timeline-wrapper").addEventListener("pointerleave", (ev) => {
+    if(!boolIsGrabbing && boolIsScrolling) {
+      doListScroll(ev, true);
     }
   });
 
